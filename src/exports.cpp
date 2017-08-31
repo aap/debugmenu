@@ -17,36 +17,57 @@
 extern "C" {
 
 #define X(NAME, TYPE) \
-EXPORT void																			\
+EXPORT MenuEntry*																			\
 DebugMenuAdd##NAME(const char *path, const char *name, TYPE *ptr, TriggerFunc triggerFunc, TYPE step, TYPE lowerBound, TYPE upperBound, const char **strings)	\
 {																				\
 	Menu *m = findMenu(path);																\
 	if(m == nil)																		\
-		return;																		\
-	m->appendEntry(new MenuEntry_##NAME(name, ptr, triggerFunc, step, lowerBound, upperBound, strings));							\
+		return nil;																		\
+	MenuEntry *e = new MenuEntry_##NAME(name, ptr, triggerFunc, step, lowerBound, upperBound, strings);							\
+	m->appendEntry(e);							\
+	return e;																		\
 }
 INTTYPES
 #undef X
 
 #define X(NAME, TYPE) \
-EXPORT void																			\
+EXPORT MenuEntry*																			\
 DebugMenuAdd##NAME(const char *path, const char *name, TYPE *ptr, TriggerFunc triggerFunc, TYPE step, TYPE lowerBound, TYPE upperBound)	\
 {																				\
 	Menu *m = findMenu(path);																\
 	if(m == nil)																		\
-		return;																		\
-	m->appendEntry(new MenuEntry_##NAME(name, ptr, triggerFunc, step, lowerBound, upperBound));							\
+		return nil;																		\
+	MenuEntry *e = new MenuEntry_##NAME(name, ptr, triggerFunc, step, lowerBound, upperBound);								\
+	m->appendEntry(e);							\
+	return e;																		\
 }
 FLOATTYPES
 #undef X
 
-EXPORT void																			\
-DebugMenuAddCmd(const char *path, const char *name, TriggerFunc triggerFunc)	\
-{																				\
-	Menu *m = findMenu(path);																\
-	if(m == nil)																		\
-		return;																		\
-	m->appendEntry(new MenuEntry_Cmd(name, triggerFunc));													\
+EXPORT MenuEntry*																			\
+DebugMenuAddCmd(const char *path, const char *name, TriggerFunc triggerFunc)
+{
+	Menu *m = findMenu(path);
+	if(m == nil)
+		return nil;
+	MenuEntry *e = new MenuEntry_Cmd(name, triggerFunc);
+	m->appendEntry(e);
+	return e;
 }
+
+EXPORT void
+DebugMenuEntrySetWrap(MenuEntry *e, bool wrap)
+{
+	if(e && e->type == MENUVAR)
+		((MenuEntry_Var*)e)->wrapAround = wrap;
+}
+
+EXPORT void
+DebugMenuEntrySetStrings(MenuEntry *e, const char **strings)
+{
+	if(e && e->type == MENUVAR_INT)
+		((MenuEntry_Int*)e)->setStrings(strings);
+}
+
 
 }

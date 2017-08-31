@@ -57,10 +57,11 @@ MenuEntry_Sub::MenuEntry_Sub(const char *name, Menu *menu)
 	this->submenu = menu;
 }
 
-MenuEntry_Var::MenuEntry_Var(const char *name)
+MenuEntry_Var::MenuEntry_Var(const char *name, int vartype)
 : MenuEntry(name)
 {
 	this->type = MENUVAR;
+	this->vartype = vartype;
 	this->maxvallen = 0;
 }
 
@@ -70,6 +71,11 @@ MenuEntry_Var::MenuEntry_Var(const char *name)
  * *****************************
  */
 
+MenuEntry_Int::MenuEntry_Int(const char *name)
+: MenuEntry_Var(name, MENUVAR_INT)
+{
+	this->wrapAround = false;
+}
 
 #define X(NAME, TYPE, MAXLEN, FMT) \
 int								     \
@@ -87,16 +93,29 @@ void								     \
 MenuEntry_##NAME::processInput(void)				     \
 {								     \
 	TYPE v, oldv;						     \
+	int overflow = 0;					     \
+	int underflow = 0;					     \
 								     \
 	v = *this->variable;					     \
 	oldv = v;						     \
 								     \
-	if(leftjustdown)					     \
+	if(leftjustdown){					     \
 		v -= this->step;				     \
-	if(rightjustdown)					     \
+		if(v > oldv)					     \
+			underflow = 1;				     \
+	}							     \
+	if(rightjustdown){					     \
 		v += this->step;				     \
-	if(v > this->upperBound) v = this->upperBound;	     \
-	if(v < this->lowerBound) v = this->lowerBound;	     \
+		if(v < oldv)					     \
+			overflow = 1;				     \
+	}							     \
+	if(this->wrapAround){					     \
+		if(v > this->upperBound || overflow) v = this->lowerBound;	     \
+		if(v < this->lowerBound || underflow) v = this->upperBound;	     \
+	}else{									     \
+		if(v > this->upperBound || overflow) v = this->upperBound;	     \
+		if(v < this->lowerBound || underflow) v = this->lowerBound;	     \
+	}							     \
 								     \
 	*this->variable = v;					     \
 	if(oldv != v && this->triggerFunc)			     \
@@ -112,8 +131,15 @@ MenuEntry_##NAME::getValStr(char *str, int len)						       \
 	}else										       \
 		snprintf(str, len, this->fmt, *this->variable);				       \
 }											       \
+void																			   \
+MenuEntry_##NAME::setStrings(const char **strings)													   \
+{																			   \
+	this->strings = strings;															   \
+	if(this->strings)																   \
+		this->maxvallen = findStringLen();													   \
+}																			   \
 MenuEntry_##NAME::MenuEntry_##NAME(const char *name, TYPE *ptr, TriggerFunc triggerFunc, TYPE step, TYPE lowerBound, TYPE upperBound, const char **strings)   \
-: MenuEntry_Var(name)																	   \
+: MenuEntry_Int(name)																	   \
 {																			   \
 	this->variable = ptr;																   \
 	this->step = step;																   \
@@ -122,9 +148,7 @@ MenuEntry_##NAME::MenuEntry_##NAME(const char *name, TYPE *ptr, TriggerFunc trig
 	this->triggerFunc = triggerFunc;														   \
 	this->maxvallen = MAXLEN;															   \
 	this->fmt = FMT;																   \
-	this->strings = strings;															   \
-	if(this->strings)																   \
-		this->maxvallen = findStringLen();													   \
+	this->setStrings(strings);																   \
 }
 MUHINTS
 #undef X
@@ -137,7 +161,7 @@ MUHINTS
 
 #define X(NAME, TYPE, MAXLEN, FMT) \
 MenuEntry_##NAME::MenuEntry_##NAME(const char *name, TYPE *ptr, TriggerFunc triggerFunc, TYPE step, TYPE lowerBound, TYPE upperBound)	     \
-: MenuEntry_Var(name)															     \
+: MenuEntry_Var(name, MENUVAR_FLOAT)															     \
 {																	     \
 	this->variable = ptr;														     \
 	this->step = step;														     \
@@ -156,16 +180,29 @@ void																	     \
 MenuEntry_##NAME::processInput(void)													     \
 {																	     \
 	float v, oldv;															     \
+	int overflow = 0;					     \
+	int underflow = 0;					     \
 																	     \
 	v = *this->variable;														     \
 	oldv = v;															     \
 																	     \
-	if(leftjustdown)														     \
-		v -= this->step;													     \
-	if(rightjustdown)														     \
-		v += this->step;													     \
-	if(v > this->upperBound) v = this->upperBound;											     \
-	if(v < this->lowerBound) v = this->lowerBound;											     \
+	if(leftjustdown){					     \
+		v -= this->step;				     \
+		if(v > oldv)					     \
+			underflow = 1;				     \
+	}							     \
+	if(rightjustdown){					     \
+		v += this->step;				     \
+		if(v < oldv)					     \
+			overflow = 1;				     \
+	}							     \
+	if(this->wrapAround){					     \
+		if(v > this->upperBound || overflow) v = this->lowerBound;	     \
+		if(v < this->lowerBound || underflow) v = this->upperBound;	     \
+	}else{									     \
+		if(v > this->upperBound || overflow) v = this->upperBound;	     \
+		if(v < this->lowerBound || underflow) v = this->lowerBound;	     \
+	}							     \
 																	     \
 	*this->variable = v;														     \
 	if(oldv != v && this->triggerFunc)												     \
@@ -195,7 +232,7 @@ MenuEntry_Cmd::getValStr(char *str, int len)
 }
 
 MenuEntry_Cmd::MenuEntry_Cmd(const char *name, TriggerFunc triggerFunc)
-: MenuEntry_Var(name)
+: MenuEntry_Var(name, MENUVAR_CMD)
 {
 	this->maxvallen = 1;
 	this->triggerFunc = triggerFunc;

@@ -3,6 +3,10 @@ enum EntryType
 	MENUEMPTY = 0,
 	MENUSUB,
 	MENUVAR,
+
+	MENUVAR_INT,
+	MENUVAR_FLOAT,
+	MENUVAR_CMD
 };
 
 
@@ -53,11 +57,20 @@ struct MenuEntry_Sub : MenuEntry
 struct MenuEntry_Var : MenuEntry
 {
 	int maxvallen;
+	int vartype;
+	bool wrapAround;
 
 	virtual void processInput(void) = 0;
 	int getValWidth(void) { return maxvallen; }
 	virtual void getValStr(char *str, int len) = 0;
-	MenuEntry_Var(const char *name);
+	MenuEntry_Var(const char *name, int type);
+};
+
+struct MenuEntry_Int : MenuEntry_Var
+{
+	virtual void setStrings(const char **strings) = 0;
+	virtual int findStringLen(void) = 0;
+	MenuEntry_Int(const char *name);
 };
 
 #define MUHINTS \
@@ -74,7 +87,7 @@ struct MenuEntry_Var : MenuEntry
 	X(Float64, double, 11, "%11.3lf")
 
 #define X(NAME, TYPE, MAXLEN, FMT) \
-struct MenuEntry_##NAME : MenuEntry_Var														       \
+struct MenuEntry_##NAME : MenuEntry_Int														       \
 {																		       \
 	TYPE *variable;																       \
 	TYPE lowerBound, upperBound;														       \
@@ -86,6 +99,7 @@ struct MenuEntry_##NAME : MenuEntry_Var														       \
 	void processInput(void);														       \
 	void getValStr(char *str, int len);													       \
 																		       \
+	void setStrings(const char **strings);													       \
 	int findStringLen(void);														       \
 	MenuEntry_##NAME(const char *name, TYPE *ptr, TriggerFunc triggerFunc, TYPE step, TYPE lowerBound, TYPE upperBound, const char **strings);     \
 };
