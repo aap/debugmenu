@@ -24,13 +24,14 @@ enum
 	III_STEAM,
 	VC_10,
 	VC_11,
-	VC_STEAM
+	VC_STEAM,
+	SA_10
 };
 
 extern int gtaversion;
 
 template<typename T>
-inline T AddressByVersion(uintptr addressIII10, uintptr addressIII11, uintptr addressIIISteam, uintptr addressvc10, uintptr addressvc11, uintptr addressvcSteam)
+inline T AddressByVersion(uintptr addressIII10, uintptr addressIII11, uintptr addressIIISteam, uintptr addressvc10, uintptr addressvc11, uintptr addressvcSteam, uintptr addressSA10)
 {
 	if(gtaversion == -1){
 		     if(*(uintptr*)0x5C1E75 == 0xB85548EC) gtaversion = III_10;
@@ -39,6 +40,7 @@ inline T AddressByVersion(uintptr addressIII10, uintptr addressIII11, uintptr ad
 		else if(*(uintptr*)0x667BF5 == 0xB85548EC) gtaversion = VC_10;
 		else if(*(uintptr*)0x667C45 == 0xB85548EC) gtaversion = VC_11;
 		else if(*(uintptr*)0x666BA5 == 0xB85548EC) gtaversion = VC_STEAM;
+		else if(*(uintptr*)0x82457C == 0x94BF && *(uintptr*)0x8245BC != 0x94BF) gtaversion = SA_10;
 		else gtaversion = 0;
 	}
 	switch(gtaversion){
@@ -54,6 +56,8 @@ inline T AddressByVersion(uintptr addressIII10, uintptr addressIII11, uintptr ad
 		return (T)addressvc11;
 	case VC_STEAM:
 		return (T)addressvcSteam;
+	case SA_10:
+		return (T)addressSA10;
 	default:
 		return (T)0;
 	}

@@ -45,36 +45,57 @@ changeColors(RwImage *img, RwRGBA fg, RwRGBA bg)
 void
 createDebugFont(int res, Font *font)
 {
+	uint8 *pixels;
+	int size;
 	RwInt32 w, h, d, flags;
+	int style;
 
 	RwImage *img = readTGA(res);
+	size = RwImageGetStride(img)*RwImageGetHeight(img);
+	pixels = new uint8[size];
+	memcpy(pixels, RwImageGetPixels(img), size);
 	RwImageFindRasterFormat(img, rwRASTERTYPETEXTURE, &w, &h, &d, &flags);
 
-	RwRGBA fg_inactive = { 200, 200, 200, 255 };
-	RwRGBA bg_inactive = { 0, 0, 0, 0 };	// alpha must be 0
-	changeColors(img, fg_inactive, bg_inactive);
+	style = FONT_NORMAL;
+	RwRGBA fg_normal = { 255, 255, 255, 255 };
+	RwRGBA bg_normal = { 255, 255, 255, 0 };
+	changeColors(img, fg_normal, bg_normal);
+	font->rasters[style] = RwRasterCreate(w, h, d, flags);
+	font->rasters[style] = RwRasterSetFromImage(font->rasters[style], img);
+	assert(font->rasters[style]);
 
-	font->rasters[0] = RwRasterCreate(w, h, d, flags);
-	font->rasters[0] = RwRasterSetFromImage(font->rasters[0], img);
-	assert(font->rasters[0]);
+	memcpy(RwImageGetPixels(img), pixels, size);	// reset pixels
 
-	RwRGBA fg_inactiveSelect = { 255, 255, 255, 255 };
-	RwRGBA bg_inactiveSelect = { 0, 0, 0, 0 };	// alpha must be 0
-	changeColors(img, fg_inactiveSelect, bg_inactiveSelect);
+	style = FONT_SEL_ACTIVE;
+	RwRGBA fg_sel_active = { 200, 200, 200, 255 };
+	RwRGBA bg_sel_active = { 132, 132, 132, 255 };
+	changeColors(img, fg_sel_active, bg_sel_active);
+	font->rasters[style] = RwRasterCreate(w, h, d, flags);
+	font->rasters[style] = RwRasterSetFromImage(font->rasters[style], img);
+	assert(font->rasters[style]);
 
-	font->rasters[1] = RwRasterCreate(w, h, d, flags);
-	font->rasters[1] = RwRasterSetFromImage(font->rasters[1], img);
-	assert(font->rasters[1]);
+	memcpy(RwImageGetPixels(img), pixels, size);	// reset pixels
 
-	RwRGBA fg_activeSelect = { 200, 200, 200, 255 };
-	RwRGBA bg_activeSelect = { 132, 132, 132, 255 };
-	changeColors(img, fg_activeSelect, bg_activeSelect);
+	style = FONT_SEL_INACTIVE;
+	RwRGBA fg_sel_inactive = { 200, 200, 200, 255 };
+	RwRGBA bg_sel_inactive = { 200, 200, 200, 0 };
+	changeColors(img, fg_sel_inactive, bg_sel_inactive);
+	font->rasters[style] = RwRasterCreate(w, h, d, flags);
+	font->rasters[style] = RwRasterSetFromImage(font->rasters[style], img);
+	assert(font->rasters[style]);
 
-	font->rasters[2] = RwRasterCreate(w, h, d, flags);
-	font->rasters[2] = RwRasterSetFromImage(font->rasters[2], img);
-	assert(font->rasters[2]);
+	memcpy(RwImageGetPixels(img), pixels, size);	// reset pixels
+
+	style = FONT_MOUSE;
+	RwRGBA fg_mouse = { 255, 255, 255, 255 };
+	RwRGBA bg_mouse = { 132, 132, 132, 255 };
+	changeColors(img, fg_mouse, bg_mouse);
+	font->rasters[style] = RwRasterCreate(w, h, d, flags);
+	font->rasters[style] = RwRasterSetFromImage(font->rasters[style], img);
+	assert(font->rasters[style]);
 
 	RwImageDestroy(img);
+	delete[] pixels;
 }
 
 void
@@ -93,6 +114,7 @@ fontPrint(const char *s, float xstart, float ystart, int style)
 	RwIm2DVertex *vert;
 	RwImVertexIndex *ix;
 	float u, v, du, dv;
+	float uhalf, vhalf;
 	float x, y;
 	Pt sz;
 	int szx;
@@ -111,6 +133,8 @@ fontPrint(const char *s, float xstart, float ystart, int style)
 	ix = &indices[curIndex];
 	du = curfont->glyphwidth/(float)raster->width;
 	dv = curfont->glyphheight/(float)raster->height;
+	uhalf = 0.5f/raster->width;
+	vhalf = 0.5f/raster->height;
 	float recipz = 1.0f/RwCameraGetNearClipPlane(cam);
 	while(c = *s++){
 		if(c == '\n'){
@@ -134,8 +158,8 @@ fontPrint(const char *s, float xstart, float ystart, int style)
 		RwIm2DVertexSetCameraZ(vert, RwCameraGetNearClipPlane(cam));
 		RwIm2DVertexSetRecipCameraZ(vert, recipz);
 		RwIm2DVertexSetIntRGBA(vert, 255, 255, 255, 255);
-		RwIm2DVertexSetU(vert, u, recipz);
-		RwIm2DVertexSetV(vert, v, recipz);
+		RwIm2DVertexSetU(vert, u+uhalf, recipz);
+		RwIm2DVertexSetV(vert, v+vhalf, recipz);
 		vert++;
 
 		RwIm2DVertexSetScreenX(vert, x+curfont->glyphwidth);
@@ -144,8 +168,8 @@ fontPrint(const char *s, float xstart, float ystart, int style)
 		RwIm2DVertexSetCameraZ(vert, RwCameraGetNearClipPlane(cam));
 		RwIm2DVertexSetRecipCameraZ(vert, recipz);
 		RwIm2DVertexSetIntRGBA(vert, 255, 255, 255, 255);
-		RwIm2DVertexSetU(vert, u+du, recipz);
-		RwIm2DVertexSetV(vert, v, recipz);
+		RwIm2DVertexSetU(vert, u+du+uhalf, recipz);
+		RwIm2DVertexSetV(vert, v+vhalf, recipz);
 		vert++;
 
 		RwIm2DVertexSetScreenX(vert, x);
@@ -154,8 +178,8 @@ fontPrint(const char *s, float xstart, float ystart, int style)
 		RwIm2DVertexSetCameraZ(vert, RwCameraGetNearClipPlane(cam));
 		RwIm2DVertexSetRecipCameraZ(vert, recipz);
 		RwIm2DVertexSetIntRGBA(vert, 255, 255, 255, 255);
-		RwIm2DVertexSetU(vert, u, recipz);
-		RwIm2DVertexSetV(vert, v+dv, recipz);
+		RwIm2DVertexSetU(vert, u+uhalf, recipz);
+		RwIm2DVertexSetV(vert, v+dv+vhalf, recipz);
 		vert++;
 
 		RwIm2DVertexSetScreenX(vert, x+curfont->glyphwidth);
@@ -164,8 +188,8 @@ fontPrint(const char *s, float xstart, float ystart, int style)
 		RwIm2DVertexSetCameraZ(vert, RwCameraGetNearClipPlane(cam));
 		RwIm2DVertexSetRecipCameraZ(vert, recipz);
 		RwIm2DVertexSetIntRGBA(vert, 255, 255, 255, 255);
-		RwIm2DVertexSetU(vert, u+du, recipz);
-		RwIm2DVertexSetV(vert, v+dv, recipz);
+		RwIm2DVertexSetU(vert, u+du+uhalf, recipz);
+		RwIm2DVertexSetV(vert, v+dv+vhalf, recipz);
 		vert++;
 		*ix++ = curVert;
 		*ix++ = curVert+1;
@@ -182,7 +206,8 @@ fontPrint(const char *s, float xstart, float ystart, int style)
 	if(szx > sz.x)
 		sz.x = szx;
 	RwRenderStateSet(rwRENDERSTATETEXTURERASTER, raster);
-	RwRenderStateSet(rwRENDERSTATETEXTUREFILTER, (void*)rwFILTERNEAREST);
+//	RwRenderStateSet(rwRENDERSTATETEXTUREFILTER, (void*)rwFILTERNEAREST);
+	RwRenderStateSet(rwRENDERSTATETEXTUREFILTER, (void*)rwFILTERLINEAR);
 	RwIm2DRenderIndexedPrimitive(rwPRIMTYPETRILIST, vertices, curVert, indices, curIndex);
 	return sz;
 }

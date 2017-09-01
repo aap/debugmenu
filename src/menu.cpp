@@ -13,20 +13,22 @@
 
 #define REPEATDELAY 700
 #define REPEATINTERVAL 50
-#define X(var, keycode) int var;
+#define X(var, keycode) static int var;
 MUHKEYS
 #undef X
-int downtime;
-int repeattime;
-int lastkeydown;
-int *keyptr;
+static int downtime;
+static int repeattime;
+static int lastkeydown;
+static int *keyptr;
+
+static int button1justdown, button3justdown;
+static float mouseX, mouseY;
 
 extern CControllerConfigManager *ctrldummy;
 static int menuOn;
 static int menuInitialized;
 static int screenWidth, screenHeight;
 static RwRaster *cursor;
-static float mouseX, mouseY;
 
 static int firstBorder = 10;
 static int topBorder = 10;
@@ -38,6 +40,9 @@ void drawMouse(void);
 
 Menu toplevel;
 Menu *activeMenu = &toplevel;
+Menu *deepestMenu = &toplevel;
+Menu *mouseOverMenu;
+MenuEntry *mouseOverEntry;
 
 /*
  * MenuEntry
@@ -48,6 +53,7 @@ MenuEntry::MenuEntry(const char *name)
 	this->type = MENUEMPTY;
 	this->name = strdup(name);
 	this->next = nil;
+	this->menu = nil;
 }
 
 MenuEntry_Sub::MenuEntry_Sub(const char *name, Menu *menu)
@@ -99,12 +105,12 @@ MenuEntry_##NAME::processInput(void)				     \
 	v = *this->variable;					     \
 	oldv = v;						     \
 								     \
-	if(leftjustdown){					     \
+	if(leftjustdown || button3justdown){					     \
 		v -= this->step;				     \
 		if(v > oldv)					     \
 			underflow = 1;				     \
 	}							     \
-	if(rightjustdown){					     \
+	if(rightjustdown || button1justdown){					     \
 		v += this->step;				     \
 		if(v < oldv)					     \
 			overflow = 1;				     \
@@ -186,12 +192,12 @@ MenuEntry_##NAME::processInput(void)													     \
 	v = *this->variable;														     \
 	oldv = v;															     \
 																	     \
-	if(leftjustdown){					     \
+	if(leftjustdown || button3justdown){					     \
 		v -= this->step;				     \
 		if(v > oldv)					     \
 			underflow = 1;				     \
 	}							     \
-	if(rightjustdown){					     \
+	if(rightjustdown || button1justdown){					     \
 		v += this->step;				     \
 		if(v < oldv)					     \
 			overflow = 1;				     \
@@ -221,7 +227,8 @@ MUHFLOATS
 void
 MenuEntry_Cmd::processInput(void)
 {
-	if((leftjustdown || rightjustdown) && this->triggerFunc)
+	// Don't execute on button3
+	if((leftjustdown || rightjustdown || button1justdown) && this->triggerFunc)
 		this->triggerFunc();
 }
 
@@ -264,6 +271,22 @@ Menu::changeSelection(int newsel){
 	if(selection >= scrollStart+numVisible) scrollStart = selection-numVisible+1;
 }
 
+void
+Menu::changeSelection(MenuEntry *sel)
+{
+	MenuEntry *e;
+	int i = 0;
+	for(e = this->entries; e; e = e->next){
+		if(e == sel){
+			this->selection = i;
+			this->selectedEntry = sel;
+			break;
+		}
+		i++;
+	}
+}
+
+
 
 MenuEntry*
 Menu::findEntry(const char *entryname)
@@ -289,6 +312,7 @@ Menu::insertEntrySorted(MenuEntry *entry)
 	}
 	entry->next = *mp;
 	*mp = entry;
+	entry->menu = this;
 	this->numEntries++;
 }
 
@@ -299,6 +323,7 @@ Menu::appendEntry(MenuEntry *entry)
 	for(mp = &this->entries; *mp; mp = &(*mp)->next);
 	entry->next = *mp;
 	*mp = entry;
+	entry->menu = this;
 	this->numEntries++;
 }
 
@@ -314,6 +339,8 @@ Menu::update(void)
 	y = this->r.y + 10;
 	int end = this->r.y+this->r.h - 10;
 	this->numVisible = 0;
+
+	deepestMenu = this;
 
 	onscreen = 1;
 	i = 0;
@@ -375,9 +402,11 @@ Menu::draw(void)
 		if(i >= this->scrollStart+this->numVisible)
 			break;
 		if(i >= this->scrollStart){
-			int style = i == this->selection;
-			if(style && this == activeMenu)
-				style = 2;
+			int style = FONT_NORMAL;
+			if(i == this->selection)
+				style = this == activeMenu ? FONT_SEL_ACTIVE : FONT_SEL_INACTIVE;
+			if(style != FONT_SEL_ACTIVE && e == mouseOverEntry)
+				style = FONT_MOUSE;
 			fontPrint(e->name, e->r.x, e->r.y, style);
 			if(e->type == MENUVAR){
 				int valw = fontGetLen(((MenuEntry_Var*)e)->getValWidth());
@@ -456,6 +485,13 @@ initDebug(void)
 
 }
 
+bool
+isMouseInRect(RwRect r)
+{
+	return (mouseX >= r.x && mouseX < r.x+r.w &&
+		mouseY >= r.y && mouseY < r.y+r.h);
+}
+
 void
 processInput(void)
 {
@@ -487,6 +523,34 @@ processInput(void)
 		}
 	}
 
+	// Walk through all visible menus and figure out which one the mouse is over
+	mouseOverMenu = nil;
+	mouseOverEntry = nil;
+	Menu *menu;
+	for(menu = deepestMenu; menu; menu = menu->parent)
+		if(isMouseInRect(menu->r)){
+			mouseOverMenu = menu;
+			break;
+		}
+	if(mouseOverMenu){
+		// Walk all visibile entries and figure out which one the mouse is over
+		MenuEntry *e;
+		int i = 0;
+		for(e = mouseOverMenu->entries; e; e = e->next){
+			if(i >= mouseOverMenu->scrollStart+mouseOverMenu->numVisible)
+				break;
+			if(i >= mouseOverMenu->scrollStart){
+				RwRect r = e->r;
+				r.w = mouseOverMenu->r.w;	// span the whole menu
+				if(isMouseInRect(r)){
+					mouseOverEntry = e;
+					break;
+				}
+			}
+			i++;
+		}
+	}
+
 	if(pgupjustdown)
 		activeMenu->scroll(shift ? -5 : -1);
 	if(pgdnjustdown)
@@ -495,6 +559,13 @@ processInput(void)
 		activeMenu->changeSelection(activeMenu->selection + (shift ? 5 : 1));
 	if(upjustdown)
 		activeMenu->changeSelection(activeMenu->selection - (shift ? 5 : 1));
+
+	// Have to call this before processInput below because menu entry can change
+	if((button1justdown || button3justdown) && mouseOverEntry){
+		activeMenu = mouseOverEntry->menu;
+		activeMenu->changeSelection(mouseOverEntry);
+	}
+
 	if(KEYJUSTDOWN(rsEXTENTER)){
 		if(activeMenu->selectedEntry && activeMenu->selectedEntry->type == MENUSUB)
 			activeMenu = ((MenuEntry_Sub*)activeMenu->selectedEntry)->submenu;
@@ -506,35 +577,54 @@ processInput(void)
 }
 
 void
-processMouse(void)
+updateMouse(void)
 {
-	mouseX += CPad::GetPad(0)->NewMouseControllerState.X;
-	mouseY -= CPad::GetPad(0)->NewMouseControllerState.Y;
+	CPad *pad = CPad::GetPad(0);
+	mouseX += pad->NewMouseControllerState.X;
+	mouseY -= pad->NewMouseControllerState.Y;
 	if(mouseX < 0.0f) mouseX = 0.0f;
 	if(mouseY < 0.0f) mouseY = 0.0f;
 	if(mouseX >= screenWidth) mouseX = screenWidth;
 	if(mouseY >= screenHeight) mouseY = screenHeight;
+
+	button1justdown = pad->NewMouseControllerState.lmb && !pad->OldMouseControllerState.lmb;
+	button3justdown = pad->NewMouseControllerState.rmb && !pad->OldMouseControllerState.rmb;
+
+	// Zero the mouse position so the camera won't move
+	pad->NewMouseControllerState.X = 0.0f;
+	pad->NewMouseControllerState.Y = 0.0f;
 }
 
 void
-processDebug(void)
+processMenu(void)
 {
+	// We only process some input here
+
 	CPad *pad = CPad::GetPad(0);
 	if(CTRLJUSTDOWN('M'))
 		menuOn = !menuOn;
 	if(!menuOn)
 		return;
 
-	RwCamera *cam = (RwCamera*)RWSRCGLOBAL(curCamera);
-	screenWidth = RwRasterGetWidth(RwCameraGetRaster(cam));
-	screenHeight = RwRasterGetHeight(RwCameraGetRaster(cam));
-
-	CPad::GetPad(0)->DisablePlayerControls = 1;
+	pad->DisablePlayerControls = 1;
+	// TODO: this could happen earlier
 	if(!menuInitialized){
 		initDebug();
 		menuInitialized = 1;
 	}
-	processMouse();
+	updateMouse();
+
+}
+
+void
+drawMenu(void)
+{
+	if(!menuOn)
+		return;
+
+	RwCamera *cam = (RwCamera*)RWSRCGLOBAL(curCamera);
+	screenWidth = RwRasterGetWidth(RwCameraGetRaster(cam));
+	screenHeight = RwRasterGetHeight(RwCameraGetRaster(cam));
 
 	// !!! Important to set up the correct font for update and draw!
 	curfont = &vga;

@@ -124,26 +124,47 @@ readTGA(int res)
  * Debug menu
  */
 
-
-
 void (*Render2dStuff_orig)(void);
 void
 Render2dStuff(void)
 {
 	Render2dStuff_orig();
-	processDebug();
+	drawMenu();
+}
+
+void (*CCutsceneMgr__Update_orig)(void);
+void
+CCutsceneMgr__Update(void)
+{
+	processMenu();
+	CCutsceneMgr__Update_orig();
 }
 
 void
-dothing(void)
+patchSA10(void)
 {
-	((void (*)(void))0x491040)();
+	InterceptCall(&Render2dStuff_orig, Render2dStuff, 0x53EB12);
+	InterceptCall(&CCutsceneMgr__Update_orig, CCutsceneMgr__Update, 0x53BF28);
+//	static int8 testint8 = 123;
+//	DebugMenuAddInt8("abc|qwer|foo", "testchar", &testint8, nil, 1, 0, 127, nil);
+}
+
+void
+patchVC10(void)
+{
+	InterceptCall(&Render2dStuff_orig, Render2dStuff, 0x4A608E);
+	InterceptCall(&CCutsceneMgr__Update_orig, CCutsceneMgr__Update, 0x4A4417);
+//	static int8 testint8 = 123;
+//	DebugMenuAddInt8("abc|qwer|foo", "testchar", &testint8, nil, 1, 0, 127, nil);
 }
 
 void
 patchIII10(void)
 {
 	InterceptCall(&Render2dStuff_orig, Render2dStuff, 0x48E642);
+	InterceptCall(&CCutsceneMgr__Update_orig, CCutsceneMgr__Update, 0x48C888);
+
+
 /*
 	Menu *m1 = new Menu();
 	m1->parent = &toplevel;
@@ -186,9 +207,17 @@ DllMain(HINSTANCE hInst, DWORD reason, LPVOID)
 	if(reason == DLL_PROCESS_ATTACH){
 		dllModule = hInst;
 
-		AddressByVersion<uint32_t>(0, 0, 0, 0, 0, 0);
-		if (gtaversion == III_10)
+		AddressByVersion<uint32_t>(0, 0, 0, 0, 0, 0, 0);
+#if defined (GTA3)
+		if(gtaversion == III_10)
 			patchIII10();
+#elif defined (GTAVC)
+		if(gtaversion == VC_10)
+			patchVC10();
+#elif defined (GTASA)
+		if(gtaversion == SA_10)
+			patchSA10();
+#endif
 	}
 
 	return TRUE;

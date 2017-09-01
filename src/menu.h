@@ -9,6 +9,7 @@ enum EntryType
 	MENUVAR_CMD
 };
 
+struct Menu;
 
 struct MenuEntry
 {
@@ -16,6 +17,7 @@ struct MenuEntry
 	const char *name;
 	MenuEntry *next;
 	RwRect r;
+	Menu *menu;
 
 	MenuEntry(const char *name);
 };
@@ -40,6 +42,7 @@ struct Menu
 	int selection;
 	MenuEntry *selectedEntry;	// updated by update
 	void changeSelection(int newsel);
+	void changeSelection(MenuEntry *e);
 
 	void update(void);
 	void draw(void);
