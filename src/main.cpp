@@ -145,8 +145,6 @@ patchSA10(void)
 {
 	InterceptCall(&Render2dStuff_orig, Render2dStuff, 0x53EB12);
 	InterceptCall(&CCutsceneMgr__Update_orig, CCutsceneMgr__Update, 0x53BF28);
-//	static int8 testint8 = 123;
-//	DebugMenuAddInt8("abc|qwer|foo", "testchar", &testint8, nil, 1, 0, 127, nil);
 }
 
 void
@@ -154,8 +152,6 @@ patchVC10(void)
 {
 	InterceptCall(&Render2dStuff_orig, Render2dStuff, 0x4A608E);
 	InterceptCall(&CCutsceneMgr__Update_orig, CCutsceneMgr__Update, 0x4A4417);
-//	static int8 testint8 = 123;
-//	DebugMenuAddInt8("abc|qwer|foo", "testchar", &testint8, nil, 1, 0, 127, nil);
 }
 
 void
@@ -163,42 +159,6 @@ patchIII10(void)
 {
 	InterceptCall(&Render2dStuff_orig, Render2dStuff, 0x48E642);
 	InterceptCall(&CCutsceneMgr__Update_orig, CCutsceneMgr__Update, 0x48C888);
-
-
-/*
-	Menu *m1 = new Menu();
-	m1->parent = &toplevel;
-	MenuEntry *me = new MenuEntry_Sub("submenu", m1);
-	m1->appendEntry(new MenuEntry("foo"));
-	m1->appendEntry(new MenuEntry("bar"));
-	static int32 testint;
-	m1->appendEntry(new MenuEntry_Int32("someint", &testint, nil, 2, -4, 10, nil));
-	static const char *str[3] = { "x", "reallylongline woooh", "Val 3" };
-	static int32 enumval = 4;
-	m1->appendEntry(new MenuEntry_Int32("enumval", &enumval, nil, 1, 4, 6, str));
-	m1->appendEntry(new MenuEntry_Cmd("do a thing", dothing));
-
-	m1->appendEntry(new MenuEntry_UInt8("hour", (uint8*)0x95CDA6, nil, 1, 0, 23, nil));
-	m1->appendEntry(new MenuEntry_Int16("old weather", (int16*)0x95CCEC, nil, 1, 0, 3, nil));
-	m1->appendEntry(new MenuEntry_Int16("new weather", (int16*)0x95CC70, nil, 1, 0, 3, nil));
-	m1->appendEntry(new MenuEntry_Float32("time scale", (float*)0x8F2C20, nil, 0.1f, 0.0f, 1.0f));
-//	m1->insertEntry(new MenuEntry_Int16("someshort", &testshort, 2, -4, 10, nil));
-
-	static int8 testint8 = 123;
-	DebugMenuAddInt8("abc|qwer|foo", "testchar", &testint8, nil, 1, 0, 127, nil);
-
-	toplevel.insertEntrySorted(me);
-	toplevel.insertEntrySorted(new MenuEntry("test"));
-	toplevel.insertEntrySorted(new MenuEntry("zxy"));
-	toplevel.insertEntrySorted(new MenuEntry("text"));
-	toplevel.insertEntrySorted(new MenuEntry("abc"));
-	toplevel.insertEntrySorted(new MenuEntry("dddd"));
-	static char xxx[100];
-	for(int i = 0; i < 100; i++){
-		sprintf(xxx, "zzz%d", i);
-		toplevel.insertEntrySorted(new MenuEntry(xxx));
-	}
-*/
 }
 
 BOOL WINAPI

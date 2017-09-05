@@ -6,7 +6,9 @@ enum EntryType
 
 	MENUVAR_INT,
 	MENUVAR_FLOAT,
-	MENUVAR_CMD
+	MENUVAR_CMD,
+
+	MENUSCROLL	// dummy
 };
 
 struct Menu;
@@ -37,6 +39,7 @@ struct Menu
 	bool isScrollingUp, isScrollingDown;
 	int scrollStart;
 	int numVisible;
+	RwRect scrollUpR, scrollDownR;
 	void scroll(int off);
 
 	int selection;

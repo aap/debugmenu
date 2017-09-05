@@ -18,6 +18,7 @@ typedef MenuEntry *(*DebugMenuAddFloat64_TYPE)(const char *path, const char *nam
 typedef MenuEntry *(*DebugMenuAddCmd_TYPE)(const char *path, const char *name, TriggerFunc triggerFunc);
 typedef void (*DebugMenuEntrySetWrap_TYPE)(MenuEntry *e, bool wrap);
 typedef void (*DebugMenuEntrySetStrings_TYPE)(MenuEntry *e, const char **strings);
+typedef void (*DebugMenuEntrySetAddress_TYPE)(MenuEntry *e, void *addr);
 
 struct DebugMenuAPI
 {
@@ -34,6 +35,7 @@ struct DebugMenuAPI
 	DebugMenuAddCmd_TYPE addcmd;
 	DebugMenuEntrySetWrap_TYPE setwrap;
 	DebugMenuEntrySetStrings_TYPE setstrings;
+	DebugMenuEntrySetAddress_TYPE setaddress;
 };
 extern DebugMenuAPI gDebugMenuAPI;
 
@@ -63,6 +65,8 @@ inline void DebugMenuEntrySetWrap(MenuEntry *e, bool wrap)
 { gDebugMenuAPI.setwrap(e, wrap); }
 inline void DebugMenuEntrySetStrings(MenuEntry *e, const char **strings)
 { gDebugMenuAPI.setstrings(e, strings); }
+inline void DebugMenuEntrySetAddress(MenuEntry *e, void *addr)
+{ gDebugMenuAPI.setaddress(e, addr); }
 
 inline bool DebugMenuLoad(void)
 {
@@ -92,6 +96,7 @@ inline bool DebugMenuLoad(void)
 	gDebugMenuAPI.addcmd = (DebugMenuAddCmd_TYPE)GetProcAddress(mod, "DebugMenuAddCmd");
 	gDebugMenuAPI.setwrap = (DebugMenuEntrySetWrap_TYPE)GetProcAddress(mod, "DebugMenuEntrySetWrap");
 	gDebugMenuAPI.setstrings = (DebugMenuEntrySetStrings_TYPE)GetProcAddress(mod, "DebugMenuEntrySetStrings");
+	gDebugMenuAPI.setaddress = (DebugMenuEntrySetAddress_TYPE)GetProcAddress(mod, "DebugMenuEntrySetAddress");
 	return true;
 }
 

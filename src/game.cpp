@@ -2,8 +2,6 @@
 
 // GTA
 
-//void **rwengine = *(void***)0x59EEB1;
-
 void **&RwEngineInst = *AddressByVersion<void***>(0x661228, 0x661228, 0x671248, 0x7870C0, 0x7870C8, 0x7860C8, 0xC97B24);
 
 

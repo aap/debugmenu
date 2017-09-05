@@ -69,5 +69,18 @@ DebugMenuEntrySetStrings(MenuEntry *e, const char **strings)
 		((MenuEntry_Int*)e)->setStrings(strings);
 }
 
+EXPORT void
+DebugMenuEntrySetAddress(MenuEntry *e, void *addr)
+{
+	if(e && e->type == MENUVAR){
+		MenuEntry_Var *ev = (MenuEntry_Var*)e;
+		// HACK - we know the variable field is at the same address
+		// for all int/float classes. let's hope it stays that way.
+		if(ev->vartype = MENUVAR_INT)
+			((MenuEntry_Int32*)e)->variable = (int32*)addr;
+		else if(ev->vartype = MENUVAR_FLOAT)
+			((MenuEntry_Float32*)e)->variable = (float*)addr;
+	}
+}
 
 }

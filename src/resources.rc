@@ -2,5 +2,6 @@
 #include <windows.h>
 
 IDR_CURSOR RCDATA "cursor.tga"
+IDR_ARROW RCDATA "arrow.tga"
 IDR_FONT_BIOS RCDATA "Bm437_IBM_BIOS.tga"
 IDR_FONT_VGA RCDATA "Bm437_IBM_VGA8.tga"

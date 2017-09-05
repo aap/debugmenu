@@ -11,6 +11,11 @@
 	X(pgupjustdown, rsPGUP) \
 	X(pgdnjustdown, rsPGDN)
 
+#define MUHBUTTONS \
+	X(button1justdown, 1) \
+	X(button2justdown, 2) \
+	X(button3justdown, 3)
+
 #define REPEATDELAY 700
 #define REPEATINTERVAL 50
 #define X(var, keycode) static int var;
@@ -21,14 +26,17 @@ static int repeattime;
 static int lastkeydown;
 static int *keyptr;
 
-static int button1justdown, button3justdown;
+static int buttondown[3];
+static int lastbuttondown;
+static int *buttonptr;
+static int button1justdown, button2justdown, button3justdown;
 static float mouseX, mouseY;
 
 extern CControllerConfigManager *ctrldummy;
 static int menuOn;
 static int menuInitialized;
 static int screenWidth, screenHeight;
-static RwRaster *cursor;
+static RwRaster *cursor, *arrow;
 
 static int firstBorder = 10;
 static int topBorder = 10;
@@ -37,12 +45,21 @@ static int gap = 10;
 static int minwidth = 100;
 
 void drawMouse(void);
+void drawArrow(RwRect r, int direction, int style);
 
 Menu toplevel;
 Menu *activeMenu = &toplevel;
 Menu *deepestMenu = &toplevel;
 Menu *mouseOverMenu;
 MenuEntry *mouseOverEntry;
+MenuEntry scrollUpEntry("SCROLLUP"), scrollDownEntry("SCROLLDOWN");	// dummies
+
+bool
+isMouseInRect(RwRect r)
+{
+	return (mouseX >= r.x && mouseX < r.x+r.w &&
+		mouseY >= r.y && mouseY < r.y+r.h);
+}
 
 /*
  * MenuEntry
@@ -69,6 +86,7 @@ MenuEntry_Var::MenuEntry_Var(const char *name, int vartype)
 	this->type = MENUVAR;
 	this->vartype = vartype;
 	this->maxvallen = 0;
+	this->wrapAround = false;
 }
 
 /*
@@ -80,7 +98,6 @@ MenuEntry_Var::MenuEntry_Var(const char *name, int vartype)
 MenuEntry_Int::MenuEntry_Int(const char *name)
 : MenuEntry_Var(name, MENUVAR_INT)
 {
-	this->wrapAround = false;
 }
 
 #define X(NAME, TYPE, MAXLEN, FMT) \
@@ -336,12 +353,13 @@ Menu::update(void)
 	MenuEntry *e;
 	int onscreen;
 	x = this->r.x;
-	y = this->r.y + 10;
-	int end = this->r.y+this->r.h - 10;
+	y = this->r.y + 18;
+	int end = this->r.y+this->r.h - 18;
 	this->numVisible = 0;
 
 	deepestMenu = this;
 
+	int bottomy = end;
 	onscreen = 1;
 	i = 0;
 	this->maxNameWidth = 0;
@@ -364,7 +382,8 @@ Menu::update(void)
 		if(y >= end){
 			this->isScrollingDown = true;
 			onscreen = 0;
-		}
+		}else
+			bottomy = y;
 		if(i >= this->scrollStart && onscreen)
 			this->numVisible++;
 
@@ -379,6 +398,11 @@ Menu::update(void)
 	}
 	if(this->r.w < maxNameWidth + maxValWidth + gap)
 		this->r.w = maxNameWidth + maxValWidth + gap;
+
+	this->scrollUpR = this->r;
+	this->scrollUpR.h = 16;
+	this->scrollDownR = this->scrollUpR;
+	this->scrollDownR.y = bottomy;
 
 	// Update active submenu
 	if(this->selectedEntry && this->selectedEntry->type == MENUSUB){
@@ -416,6 +440,11 @@ Menu::draw(void)
 		}
 		i++;
 	}
+
+	if(this->isScrollingUp)
+		drawArrow(this->scrollUpR, -1, isMouseInRect(this->scrollUpR));
+	if(this->isScrollingDown)
+		drawArrow(this->scrollDownR, 1, isMouseInRect(this->scrollDownR));
 
 	if(this->selectedEntry && this->selectedEntry->type == MENUSUB)
 		((MenuEntry_Sub*)this->selectedEntry)->submenu->draw();
@@ -483,13 +512,12 @@ initDebug(void)
 	assert(cursor);
 	RwImageDestroy(img);
 
-}
-
-bool
-isMouseInRect(RwRect r)
-{
-	return (mouseX >= r.x && mouseX < r.x+r.w &&
-		mouseY >= r.y && mouseY < r.y+r.h);
+	img = readTGA(IDR_ARROW);
+	RwImageFindRasterFormat(img, rwRASTERTYPETEXTURE, &w, &h, &d, &flags);
+	arrow = RwRasterCreate(w, h, d, flags);
+	arrow = RwRasterSetFromImage(arrow, img);
+	assert(arrow);
+	RwImageDestroy(img);
 }
 
 void
@@ -523,6 +551,29 @@ processInput(void)
 		}
 	}
 
+	// Also for mouse buttons
+#define X(var, num)							  \
+	if(var){							  \
+		repeattime = downtime = CTimer::m_snTimeInMilliseconds;	  \
+		lastbuttondown = num;					  \
+		buttonptr = &var;					  \
+	}
+	MUHBUTTONS
+#undef X
+	if(lastbuttondown){
+		if(buttondown[lastbuttondown-1]){
+			int curtime = CTimer::m_snTimeInMilliseconds;
+			if(curtime - downtime > REPEATDELAY){
+				if(curtime - repeattime > REPEATINTERVAL){
+					repeattime = curtime;
+					*buttonptr = 1;
+				}
+			}
+		}else{
+			lastbuttondown = 0;
+		}
+	}
+
 	// Walk through all visible menus and figure out which one the mouse is over
 	mouseOverMenu = nil;
 	mouseOverEntry = nil;
@@ -549,6 +600,18 @@ processInput(void)
 			}
 			i++;
 		}
+		if(mouseOverMenu->isScrollingUp && isMouseInRect(mouseOverMenu->scrollUpR)){
+			mouseOverEntry = &scrollUpEntry;
+			mouseOverEntry->r = mouseOverMenu->scrollUpR;
+			mouseOverEntry->menu = mouseOverMenu;
+			mouseOverEntry->type = MENUSCROLL;
+		}
+		if(mouseOverMenu->isScrollingDown && isMouseInRect(mouseOverMenu->scrollDownR)){
+			mouseOverEntry = &scrollDownEntry;
+			mouseOverEntry->r = mouseOverMenu->scrollDownR;
+			mouseOverEntry->menu = mouseOverMenu;
+			mouseOverEntry->type = MENUSCROLL;
+		}
 	}
 
 	if(pgupjustdown)
@@ -560,20 +623,43 @@ processInput(void)
 	if(upjustdown)
 		activeMenu->changeSelection(activeMenu->selection - (shift ? 5 : 1));
 
+	if(CPad::NewMouseControllerState.wheelUp){
+		if(mouseOverMenu)
+			activeMenu = mouseOverMenu;
+		activeMenu->scroll(shift ? -5 : -1);
+	}
+	if(CPad::NewMouseControllerState.wheelDown){
+		if(mouseOverMenu)
+			activeMenu = mouseOverMenu;
+		activeMenu->scroll(shift ? 5 : 1);
+	}
+
+	if(mouseOverEntry == &scrollUpEntry){
+		if(button1justdown){
+			activeMenu = mouseOverEntry->menu;
+			activeMenu->scroll(shift ? -5 : -1);
+		}
+	}
+	if(mouseOverEntry == &scrollDownEntry){
+		if(button1justdown){
+			activeMenu = mouseOverEntry->menu;
+			activeMenu->scroll(shift ? 5 : 1);
+		}
+	}
+
 	// Have to call this before processInput below because menu entry can change
 	if((button1justdown || button3justdown) && mouseOverEntry){
 		activeMenu = mouseOverEntry->menu;
 		activeMenu->changeSelection(mouseOverEntry);
 	}
-
 	if(KEYJUSTDOWN(rsEXTENTER)){
 		if(activeMenu->selectedEntry && activeMenu->selectedEntry->type == MENUSUB)
 			activeMenu = ((MenuEntry_Sub*)activeMenu->selectedEntry)->submenu;
 	}else if(KEYJUSTDOWN(rsBACK)){
 		if(activeMenu->parent)
 			activeMenu = activeMenu->parent;
-	}else if(activeMenu->selectedEntry && activeMenu->selectedEntry->type == MENUVAR)
-		((MenuEntry_Var*)activeMenu->selectedEntry)->processInput();
+	}else if(mouseOverEntry && mouseOverEntry->type == MENUVAR)
+		((MenuEntry_Var*)mouseOverEntry)->processInput();
 }
 
 void
@@ -588,7 +674,11 @@ updateMouse(void)
 	if(mouseY >= screenHeight) mouseY = screenHeight;
 
 	button1justdown = pad->NewMouseControllerState.lmb && !pad->OldMouseControllerState.lmb;
+	button2justdown = pad->NewMouseControllerState.mmb && !pad->OldMouseControllerState.mmb;
 	button3justdown = pad->NewMouseControllerState.rmb && !pad->OldMouseControllerState.rmb;
+	buttondown[0] = pad->NewMouseControllerState.lmb;
+	buttondown[1] = pad->NewMouseControllerState.mmb;
+	buttondown[2] = pad->NewMouseControllerState.rmb;
 
 	// Zero the mouse position so the camera won't move
 	pad->NewMouseControllerState.X = 0.0f;
@@ -639,17 +729,112 @@ drawMenu(void)
 	toplevel.draw();
 	processInput();
 
-	{
-		static char xxx[100];
-//		sprintf(xxx, "scrolling up:%d down:%d %d %d", toplevel.isScrollingUp, toplevel.isScrollingDown, toplevel.scrollStart, toplevel.scrollStart+toplevel.numVisible);
-//		fontPrint(xxx, toplevel.r.x+toplevel.r.w, toplevel.r.y, 0);
-	}
-
-
 	drawMouse();
 }
 
 
+
+void
+drawArrow(RwRect r, int direction, int style)
+{
+	static RwImVertexIndex indices[] = { 0, 1, 2, 2, 1, 3 };
+	static RwIm2DVertex arrowVerts[4];
+
+	RwCamera *cam = (RwCamera*)RWSRCGLOBAL(curCamera);
+	float recipz = 1.0f/RwCameraGetNearClipPlane(cam);
+
+	int width = RwRasterGetWidth(arrow);
+	int height = RwRasterGetHeight(arrow);
+
+	int left = r.x + (r.w - width)/2;
+	int right = left + width;
+	int top = r.y;
+	int bottom = r.y+r.h;
+
+	float umin = 0.5f / width;
+	float vmin = 0.5f / height;
+	float umax = (width + 0.5f) / width;
+	float vmax = (height + 0.5f) / height;
+	if(direction < 0){
+		vmin = (height - 0.5f) / height;
+		vmax = -0.5f / height;
+	}
+
+	if(style){
+		RwIm2DVertexSetScreenX(&arrowVerts[0], r.x);
+		RwIm2DVertexSetScreenY(&arrowVerts[0], r.y-1);
+		RwIm2DVertexSetScreenZ(&arrowVerts[0], RwIm2DGetNearScreenZ());
+		RwIm2DVertexSetCameraZ(&arrowVerts[0], RwCameraGetNearClipPlane(cam));
+		RwIm2DVertexSetRecipCameraZ(&arrowVerts[0], recipz);
+		RwIm2DVertexSetIntRGBA(&arrowVerts[0], 132, 132, 132, 255);
+
+		RwIm2DVertexSetScreenX(&arrowVerts[1], r.x+r.w);
+		RwIm2DVertexSetScreenY(&arrowVerts[1], r.y-1);
+		RwIm2DVertexSetScreenZ(&arrowVerts[1], RwIm2DGetNearScreenZ());
+		RwIm2DVertexSetCameraZ(&arrowVerts[1], RwCameraGetNearClipPlane(cam));
+		RwIm2DVertexSetRecipCameraZ(&arrowVerts[1], recipz);
+		RwIm2DVertexSetIntRGBA(&arrowVerts[1], 132, 132, 132, 255);
+
+		RwIm2DVertexSetScreenX(&arrowVerts[2], r.x);
+		RwIm2DVertexSetScreenY(&arrowVerts[2], r.y+r.h+1);
+		RwIm2DVertexSetScreenZ(&arrowVerts[2], RwIm2DGetNearScreenZ());
+		RwIm2DVertexSetCameraZ(&arrowVerts[2], RwCameraGetNearClipPlane(cam));
+		RwIm2DVertexSetRecipCameraZ(&arrowVerts[2], recipz);
+		RwIm2DVertexSetIntRGBA(&arrowVerts[2], 132, 132, 132, 255);
+
+		RwIm2DVertexSetScreenX(&arrowVerts[3], r.x+r.w);
+		RwIm2DVertexSetScreenY(&arrowVerts[3], r.y+r.h+1);
+		RwIm2DVertexSetScreenZ(&arrowVerts[3], RwIm2DGetNearScreenZ());
+		RwIm2DVertexSetCameraZ(&arrowVerts[3], RwCameraGetNearClipPlane(cam));
+		RwIm2DVertexSetRecipCameraZ(&arrowVerts[3], recipz);
+		RwIm2DVertexSetIntRGBA(&arrowVerts[3], 132, 132, 132, 255);
+
+		RwRenderStateSet(rwRENDERSTATETEXTURERASTER, nil);
+		RwRenderStateSet(rwRENDERSTATETEXTUREFILTER, (void*)rwFILTERLINEAR);
+		RwIm2DRenderIndexedPrimitive(rwPRIMTYPETRILIST, arrowVerts, 4, indices, 6);
+	}
+
+
+	RwIm2DVertexSetScreenX(&arrowVerts[0], left);
+	RwIm2DVertexSetScreenY(&arrowVerts[0], top);
+	RwIm2DVertexSetScreenZ(&arrowVerts[0], RwIm2DGetNearScreenZ());
+	RwIm2DVertexSetCameraZ(&arrowVerts[0], RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetRecipCameraZ(&arrowVerts[0], recipz);
+	RwIm2DVertexSetIntRGBA(&arrowVerts[0], 255, 255, 255, 255);
+	RwIm2DVertexSetU(&arrowVerts[0], umin, recipz);
+	RwIm2DVertexSetV(&arrowVerts[0], vmin, recipz);
+
+	RwIm2DVertexSetScreenX(&arrowVerts[1], right);
+	RwIm2DVertexSetScreenY(&arrowVerts[1], top);
+	RwIm2DVertexSetScreenZ(&arrowVerts[1], RwIm2DGetNearScreenZ());
+	RwIm2DVertexSetCameraZ(&arrowVerts[1], RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetRecipCameraZ(&arrowVerts[1], recipz);
+	RwIm2DVertexSetIntRGBA(&arrowVerts[1], 255, 255, 255, 255);
+	RwIm2DVertexSetU(&arrowVerts[1], umax, recipz);
+	RwIm2DVertexSetV(&arrowVerts[1], vmin, recipz);
+
+	RwIm2DVertexSetScreenX(&arrowVerts[2], left);
+	RwIm2DVertexSetScreenY(&arrowVerts[2], bottom);
+	RwIm2DVertexSetScreenZ(&arrowVerts[2], RwIm2DGetNearScreenZ());
+	RwIm2DVertexSetCameraZ(&arrowVerts[2], RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetRecipCameraZ(&arrowVerts[2], recipz);
+	RwIm2DVertexSetIntRGBA(&arrowVerts[2], 255, 255, 255, 255);
+	RwIm2DVertexSetU(&arrowVerts[2], umin, recipz);
+	RwIm2DVertexSetV(&arrowVerts[2], vmax, recipz);
+
+	RwIm2DVertexSetScreenX(&arrowVerts[3], right);
+	RwIm2DVertexSetScreenY(&arrowVerts[3], bottom);
+	RwIm2DVertexSetScreenZ(&arrowVerts[3], RwIm2DGetNearScreenZ());
+	RwIm2DVertexSetCameraZ(&arrowVerts[3], RwCameraGetNearClipPlane(cam));
+	RwIm2DVertexSetRecipCameraZ(&arrowVerts[3], recipz);
+	RwIm2DVertexSetIntRGBA(&arrowVerts[3], 255, 255, 255, 255);
+	RwIm2DVertexSetU(&arrowVerts[3], umax, recipz);
+	RwIm2DVertexSetV(&arrowVerts[3], vmax, recipz);
+
+	RwRenderStateSet(rwRENDERSTATETEXTURERASTER, arrow);
+	RwRenderStateSet(rwRENDERSTATETEXTUREFILTER, (void*)rwFILTERNEAREST);
+	RwIm2DRenderIndexedPrimitive(rwPRIMTYPETRILIST, arrowVerts, 4, indices, 6);
+}
 
 void
 drawMouse(void)

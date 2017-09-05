@@ -17,5 +17,6 @@ EXPORT MenuEntry *DebugMenuAddFloat64(const char *path, const char *name, double
 EXPORT MenuEntry *DebugMenuAddCmd(const char *path, const char *name, TriggerFunc triggerFunc);
 EXPORT void DebugMenuEntrySetWrap(MenuEntry *e, bool wrap);
 EXPORT void DebugMenuEntrySetStrings(MenuEntry *e, const char **strings);
+EXPORT void DebugMenuEntrySetAddress(MenuEntry *e, void *addr);
 
 }
