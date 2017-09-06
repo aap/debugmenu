@@ -3,11 +3,12 @@ This is a debug menu for GTA III, VC and SA.
 The idea is that other plugins load this dll and add variables
 and commands to it so they can be edited from within the game.
 
+It is currently compatible with 1.0 US executables.
 
 How to install
 ==============
-Put debugmenu.dll for your game into the game's main directory.
-Plugins that make use of it will load it.
+Put debugmenu.dll for your game into the game's root directory.
+Plugins that make use of it will load it so DON'T rename the file.
 
 
 How to control
@@ -18,8 +19,8 @@ How to control
 - Arrow Left/Right changes values/executes commands
 - the mouse is pretty intuitive
 
-How to use
-==========
+How to use (for programmers)
+============================
 Include debugmenu_public.h in your plugin, define 'DebugMenuAPI gDebugMenuAPI'
 globally somewhere and load the debugmenu.dll by calling 'bool DebugMenuLoad(void)',
 which loads all function pointers and returns whether the library could

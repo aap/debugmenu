@@ -484,7 +484,11 @@ findMenu(const char *name)
 			Menu *submenu = new Menu();
 			submenu->parent = m;
 			MenuEntry *me = new MenuEntry_Sub(curname, submenu);
-			m->insertEntrySorted(me);
+			// Don't sort submenus outside the toplevel menu
+			if(m == &toplevel)
+				m->insertEntrySorted(me);
+			else
+				m->appendEntry(me);
 			m = submenu;
 		}
 	}
