@@ -18,6 +18,9 @@ WRAPPER bool CControllerConfigManager::GetIsKeyboardKeyDown(RsKeyCodes key) { VA
 static uint32_t CControllerConfigManager__GetIsKeyboardKeyJustDown_A = AddressByVersion<uint32_t>(0x58D8A0, 0, 0, 0x617430, 0, 0, 0x52E450);
 WRAPPER bool CControllerConfigManager::GetIsKeyboardKeyJustDown(RsKeyCodes key) { VARJMP(CControllerConfigManager__GetIsKeyboardKeyJustDown_A); }
 
+bool &MouseInvertX = *AddressByVersion<bool*>(0x95CC8C, 0, 0, 0xA10A4C, 0, 0, 0xBA6744);
+bool &MouseInvertY = *AddressByVersion<bool*>(0x95CC8D, 0, 0, 0xA10A4D, 0, 0, 0xBA6745);
+
 //
 // from SkyGfx:
 //

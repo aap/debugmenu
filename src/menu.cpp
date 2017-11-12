@@ -670,8 +670,15 @@ void
 updateMouse(void)
 {
 	CPad *pad = CPad::GetPad(0);
-	mouseX += pad->NewMouseControllerState.X;
-	mouseY -= pad->NewMouseControllerState.Y;
+	int dirX = 1;
+	int dirY = 1;
+
+	if(MouseInvertX) dirX = -1;
+	if(MouseInvertY) dirY = -1;
+
+	mouseX += pad->NewMouseControllerState.X*dirX;
+	mouseY += pad->NewMouseControllerState.Y*dirY;
+
 	if(mouseX < 0.0f) mouseX = 0.0f;
 	if(mouseY < 0.0f) mouseY = 0.0f;
 	if(mouseX >= screenWidth) mouseX = screenWidth;
