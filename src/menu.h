@@ -66,7 +66,7 @@ struct MenuEntry_Var : MenuEntry
 	int vartype;
 	bool wrapAround;
 
-	virtual void processInput(void) = 0;
+	virtual void processInput(bool mouseOver, bool selected) = 0;
 	int getValWidth(void) { return maxvallen; }
 	virtual void getValStr(char *str, int len) = 0;
 	MenuEntry_Var(const char *name, int type);
@@ -102,7 +102,7 @@ struct MenuEntry_##NAME : MenuEntry_Int														       \
 	const char *fmt;															       \
 	const char **strings;															       \
 																		       \
-	void processInput(void);														       \
+	void processInput(bool mouseOver, bool selected);														       \
 	void getValStr(char *str, int len);													       \
 																		       \
 	void setStrings(const char **strings);													       \
@@ -121,7 +121,7 @@ struct MenuEntry_##NAME : MenuEntry_Var												 \
 	TriggerFunc triggerFunc;												 \
 	const char *fmt;													 \
 																 \
-	void processInput(void);												 \
+	void processInput(bool mouseOver, bool selected);												 \
 	void getValStr(char *str, int len);											 \
 																 \
 	MenuEntry_##NAME(const char *name, TYPE *ptr, TriggerFunc triggerFunc, TYPE step, TYPE lowerBound, TYPE upperBound);	 \
@@ -133,7 +133,7 @@ struct MenuEntry_Cmd : MenuEntry_Var
 {
 	TriggerFunc triggerFunc;
 
-	void processInput(void);
+	void processInput(bool mouseOver, bool selected);
 	void getValStr(char *str, int len);
 
 	MenuEntry_Cmd(const char *name, TriggerFunc triggerFunc);

@@ -113,7 +113,7 @@ MenuEntry_##NAME::findStringLen(void){				     \
 	return maxlen;						     \
 }								     \
 void								     \
-MenuEntry_##NAME::processInput(void)				     \
+MenuEntry_##NAME::processInput(bool mouseOver, bool selected)				     \
 {								     \
 	TYPE v, oldv;						     \
 	int overflow = 0;					     \
@@ -122,12 +122,12 @@ MenuEntry_##NAME::processInput(void)				     \
 	v = *this->variable;					     \
 	oldv = v;						     \
 								     \
-	if(leftjustdown || button3justdown){					     \
+	if((selected && leftjustdown) || (mouseOver && button3justdown)){					     \
 		v -= this->step;				     \
 		if(v > oldv)					     \
 			underflow = 1;				     \
 	}							     \
-	if(rightjustdown || button1justdown){					     \
+	if((selected && rightjustdown) || (mouseOver && button1justdown)){					     \
 		v += this->step;				     \
 		if(v < oldv)					     \
 			overflow = 1;				     \
@@ -150,6 +150,10 @@ MenuEntry_##NAME::getValStr(char *str, int len)						       \
 	static char tmp[20];								       \
 	if(this->strings){								       \
 		snprintf(tmp, 20, "%%%ds", this->maxvallen);				       \
+		if(*this->variable < this->lowerBound || *this->variable > this->upperBound){  \
+			snprintf(str, len, "ERROR");					       \
+			return;								       \
+		}									       \
 		snprintf(str, len, tmp, this->strings[*this->variable-this->lowerBound]);      \
 	}else										       \
 		snprintf(str, len, this->fmt, *this->variable);				       \
@@ -200,7 +204,7 @@ MenuEntry_##NAME::getValStr(char *str, int len)												     \
 	snprintf(str, len, this->fmt, *this->variable);											     \
 }																	     \
 void																	     \
-MenuEntry_##NAME::processInput(void)													     \
+MenuEntry_##NAME::processInput(bool mouseOver, bool selected)													     \
 {																	     \
 	float v, oldv;															     \
 	int overflow = 0;					     \
@@ -209,12 +213,12 @@ MenuEntry_##NAME::processInput(void)													     \
 	v = *this->variable;														     \
 	oldv = v;															     \
 																	     \
-	if(leftjustdown || button3justdown){					     \
+	if((selected && leftjustdown) || (mouseOver && button3justdown)){					     \
 		v -= this->step;				     \
 		if(v > oldv)					     \
 			underflow = 1;				     \
 	}							     \
-	if(rightjustdown || button1justdown){					     \
+	if((selected && rightjustdown) || (mouseOver && button1justdown)){					     \
 		v += this->step;				     \
 		if(v < oldv)					     \
 			overflow = 1;				     \
@@ -242,10 +246,10 @@ MUHFLOATS
  */
 
 void
-MenuEntry_Cmd::processInput(void)
+MenuEntry_Cmd::processInput(bool mouseOver, bool selected)
 {
 	// Don't execute on button3
-	if((leftjustdown || rightjustdown || button1justdown) && this->triggerFunc)
+	if(this->triggerFunc && (selected && (leftjustdown || rightjustdown) || (mouseOver && button1justdown)))
 		this->triggerFunc();
 }
 
@@ -378,7 +382,7 @@ Menu::update(void)
 			this->selectedEntry = e;
 
 		if(i >= this->scrollStart)
-			y += sz.y + leading;
+			y += sz.y + leading*fontscale;
 		if(y >= end){
 			this->isScrollingDown = true;
 			onscreen = 0;
@@ -396,8 +400,8 @@ Menu::update(void)
 			maxNameWidth = e->r.w;
 		i++;
 	}
-	if(this->r.w < maxNameWidth + maxValWidth + gap)
-		this->r.w = maxNameWidth + maxValWidth + gap;
+	if(this->r.w < maxNameWidth + maxValWidth + gap*fontscale)
+		this->r.w = maxNameWidth + maxValWidth + gap*fontscale;
 
 	this->scrollUpR = this->r;
 	this->scrollUpR.h = 16;
@@ -662,8 +666,13 @@ processInput(void)
 	}else if(KEYJUSTDOWN(rsBACK)){
 		if(activeMenu->parent)
 			activeMenu = activeMenu->parent;
-	}else if(mouseOverEntry && mouseOverEntry->type == MENUVAR)
-		((MenuEntry_Var*)mouseOverEntry)->processInput();
+	}else{
+		if(mouseOverEntry && mouseOverEntry->type == MENUVAR)
+			((MenuEntry_Var*)mouseOverEntry)->processInput(true, mouseOverEntry == activeMenu->selectedEntry);
+		if(activeMenu->selectedEntry && activeMenu->selectedEntry->type == MENUVAR &&
+		   mouseOverEntry != activeMenu->selectedEntry)
+			((MenuEntry_Var*)activeMenu->selectedEntry)->processInput(false, true);
+	}
 }
 
 void
@@ -696,8 +705,8 @@ updateMouse(void)
 	pad->NewMouseControllerState.Y = 0.0f;
 }
 
-void
-processMenu(void)
+EXPORT void
+DebugMenuProcess(void)
 {
 	// We only process some input here
 
@@ -717,22 +726,35 @@ processMenu(void)
 
 }
 
-void
-drawMenu(void)
+EXPORT void
+DebugMenuRender(void)
 {
 	if(!menuOn)
 		return;
+
+	RwRenderStateSet(rwRENDERSTATEZTESTENABLE, 0);
+	RwRenderStateSet(rwRENDERSTATEZWRITEENABLE, 0);
+	RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, (void*)TRUE);
+	RwRenderStateSet(rwRENDERSTATESRCBLEND, (void*)rwBLENDSRCALPHA);
+	RwRenderStateSet(rwRENDERSTATEDESTBLEND, (void*)rwBLENDINVSRCALPHA);
+	RwRenderStateSet(rwRENDERSTATEFOGENABLE, 0);
+	RwRenderStateSet(rwRENDERSTATECULLMODE, (void*)rwCULLMODECULLNONE);
 
 	RwCamera *cam = (RwCamera*)RWSRCGLOBAL(curCamera);
 	screenWidth = RwRasterGetWidth(RwCameraGetRaster(cam));
 	screenHeight = RwRasterGetHeight(RwCameraGetRaster(cam));
 
+	if(screenHeight > 1080)
+		fontscale = 2;
+	else
+		fontscale = 1;
+
 	// !!! Important to set up the correct font for update and draw!
 	curfont = &vga;
 	Pt sz;
-	sz = fontPrint("Debug Menu", firstBorder, topBorder, 0);
+	sz = fontPrint("Debug Menu", firstBorder*fontscale, topBorder, 0);
 
-	toplevel.r.x = firstBorder;
+	toplevel.r.x = firstBorder*fontscale;
 	toplevel.r.y = topBorder + sz.y + 10;
 	toplevel.r.w = minwidth;	// update menu will expand
 	toplevel.r.h = screenHeight - 10 - toplevel.r.y;
@@ -843,7 +865,7 @@ drawArrow(RwRect r, int direction, int style)
 	RwIm2DVertexSetV(&arrowVerts[3], vmax, recipz);
 
 	RwRenderStateSet(rwRENDERSTATETEXTURERASTER, arrow);
-	RwRenderStateSet(rwRENDERSTATETEXTUREFILTER, (void*)rwFILTERNEAREST);
+	RwRenderStateSet(rwRENDERSTATETEXTUREFILTER, (void*)rwFILTERLINEAR);
 	RwIm2DRenderIndexedPrimitive(rwPRIMTYPETRILIST, arrowVerts, 4, indices, 6);
 }
 
@@ -861,6 +883,11 @@ drawMouse(void)
 	float h = RwRasterGetHeight(cursor);
 	float recipz = 1.0f/RwCameraGetNearClipPlane(cam);
 
+	float umin = 0.5f / w;
+	float vmin = 0.5f / h;
+	float umax = (w + 0.5f) / w;
+	float vmax = (h + 0.5f) / h;
+
 	vert = vertices;
 	RwIm2DVertexSetScreenX(vert, x);
 	RwIm2DVertexSetScreenY(vert, y);
@@ -868,8 +895,8 @@ drawMouse(void)
 	RwIm2DVertexSetCameraZ(vert, RwCameraGetNearClipPlane(cam));
 	RwIm2DVertexSetRecipCameraZ(vert, recipz);
 	RwIm2DVertexSetIntRGBA(vert, 255, 255, 255, 255);
-	RwIm2DVertexSetU(vert, 0.0f, recipz);
-	RwIm2DVertexSetV(vert, 0.0f, recipz);
+	RwIm2DVertexSetU(vert, umin, recipz);
+	RwIm2DVertexSetV(vert, vmin, recipz);
 	vert++;
 
 	RwIm2DVertexSetScreenX(vert, x+w);
@@ -878,8 +905,8 @@ drawMouse(void)
 	RwIm2DVertexSetCameraZ(vert, RwCameraGetNearClipPlane(cam));
 	RwIm2DVertexSetRecipCameraZ(vert, recipz);
 	RwIm2DVertexSetIntRGBA(vert, 255, 255, 255, 255);
-	RwIm2DVertexSetU(vert, 1.0f, recipz);
-	RwIm2DVertexSetV(vert, 0.0f, recipz);
+	RwIm2DVertexSetU(vert, umax, recipz);
+	RwIm2DVertexSetV(vert, vmin, recipz);
 	vert++;
 
 	RwIm2DVertexSetScreenX(vert, x);
@@ -888,8 +915,8 @@ drawMouse(void)
 	RwIm2DVertexSetCameraZ(vert, RwCameraGetNearClipPlane(cam));
 	RwIm2DVertexSetRecipCameraZ(vert, recipz);
 	RwIm2DVertexSetIntRGBA(vert, 255, 255, 255, 255);
-	RwIm2DVertexSetU(vert, 0.0f, recipz);
-	RwIm2DVertexSetV(vert, 1.0f, recipz);
+	RwIm2DVertexSetU(vert, umin, recipz);
+	RwIm2DVertexSetV(vert, vmax, recipz);
 	vert++;
 
 	RwIm2DVertexSetScreenX(vert, x+w);
@@ -898,11 +925,11 @@ drawMouse(void)
 	RwIm2DVertexSetCameraZ(vert, RwCameraGetNearClipPlane(cam));
 	RwIm2DVertexSetRecipCameraZ(vert, recipz);
 	RwIm2DVertexSetIntRGBA(vert, 255, 255, 255, 255);
-	RwIm2DVertexSetU(vert, 1.0f, recipz);
-	RwIm2DVertexSetV(vert, 1.0f, recipz);
+	RwIm2DVertexSetU(vert, umax, recipz);
+	RwIm2DVertexSetV(vert, vmax, recipz);
 	vert++;
 
 	RwRenderStateSet(rwRENDERSTATETEXTURERASTER, cursor);
-	RwRenderStateSet(rwRENDERSTATETEXTUREFILTER, (void*)rwFILTERNEAREST);
+	RwRenderStateSet(rwRENDERSTATETEXTUREFILTER, (void*)rwFILTERLINEAR);
 	RwIm2DRenderIndexedPrimitive(rwPRIMTYPETRILIST, vertices, 4, indices, 6);
 }

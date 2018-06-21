@@ -129,14 +129,14 @@ void
 Render2dStuff(void)
 {
 	Render2dStuff_orig();
-	drawMenu();
+	DebugMenuRender();
 }
 
 void (*CCutsceneMgr__Update_orig)(void);
 void
 CCutsceneMgr__Update(void)
 {
-	processMenu();
+	DebugMenuProcess();
 	CCutsceneMgr__Update_orig();
 }
 

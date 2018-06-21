@@ -10,7 +10,7 @@ typedef uintptr_t uintptr;
 #include "MemoryMgr.h"
 #include "resources.h"
 
-#define EXPORT __declspec(dllexport)
+#define EXPORT extern "C" __declspec(dllexport)
 
 typedef uint8_t uint8, uchar;
 typedef uint16_t uint16, ushort;
@@ -53,13 +53,14 @@ struct Font
 	int numglyphs;
 };
 extern Font vga, bios, *curfont;
+extern int fontscale;
 void createDebugFonts(void);
 Pt fontPrint(const char *s, float x, float y, int style);
 Pt fontGetStringSize(const char *s);
 int fontGetLen(int len);
 
-void processMenu(void);
-void drawMenu(void);
+EXPORT void DebugMenuProcess(void);
+EXPORT void DebugMenuRender(void);
 
 #include "menu.h"
 

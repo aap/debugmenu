@@ -10,6 +10,8 @@ RwIm2DVertex vertices[NUMCHARS*4];
 int curVert;
 int curIndex;
 
+int fontscale = 1;
+
 void
 changeColors(RwImage *img, RwRGBA fg, RwRGBA bg)
 {
@@ -119,7 +121,7 @@ fontPrint(const char *s, float xstart, float ystart, int style)
 	Pt sz;
 	int szx;
 
-	sz.y = curfont->glyphheight;
+	sz.y = curfont->glyphheight*fontscale;
 	sz.x = 0;
 	szx = 0;
 
@@ -139,8 +141,8 @@ fontPrint(const char *s, float xstart, float ystart, int style)
 	while(c = *s++){
 		if(c == '\n'){
 			x = xstart;
-			y += curfont->glyphheight;
-			sz.y = curfont->glyphheight;
+			y += curfont->glyphheight*fontscale;
+			sz.y = curfont->glyphheight*fontscale;
 			if(szx > sz.x)
 				sz.x = szx;
 			szx = 0;
@@ -162,7 +164,7 @@ fontPrint(const char *s, float xstart, float ystart, int style)
 		RwIm2DVertexSetV(vert, v+vhalf, recipz);
 		vert++;
 
-		RwIm2DVertexSetScreenX(vert, x+curfont->glyphwidth);
+		RwIm2DVertexSetScreenX(vert, x+curfont->glyphwidth*fontscale);
 		RwIm2DVertexSetScreenY(vert, y);
 		RwIm2DVertexSetScreenZ(vert, RwIm2DGetNearScreenZ());
 		RwIm2DVertexSetCameraZ(vert, RwCameraGetNearClipPlane(cam));
@@ -173,7 +175,7 @@ fontPrint(const char *s, float xstart, float ystart, int style)
 		vert++;
 
 		RwIm2DVertexSetScreenX(vert, x);
-		RwIm2DVertexSetScreenY(vert, y+curfont->glyphheight);
+		RwIm2DVertexSetScreenY(vert, y+curfont->glyphheight*fontscale);
 		RwIm2DVertexSetScreenZ(vert, RwIm2DGetNearScreenZ());
 		RwIm2DVertexSetCameraZ(vert, RwCameraGetNearClipPlane(cam));
 		RwIm2DVertexSetRecipCameraZ(vert, recipz);
@@ -182,8 +184,8 @@ fontPrint(const char *s, float xstart, float ystart, int style)
 		RwIm2DVertexSetV(vert, v+dv+vhalf, recipz);
 		vert++;
 
-		RwIm2DVertexSetScreenX(vert, x+curfont->glyphwidth);
-		RwIm2DVertexSetScreenY(vert, y+curfont->glyphheight);
+		RwIm2DVertexSetScreenX(vert, x+curfont->glyphwidth*fontscale);
+		RwIm2DVertexSetScreenY(vert, y+curfont->glyphheight*fontscale);
 		RwIm2DVertexSetScreenZ(vert, RwIm2DGetNearScreenZ());
 		RwIm2DVertexSetCameraZ(vert, RwCameraGetNearClipPlane(cam));
 		RwIm2DVertexSetRecipCameraZ(vert, recipz);
@@ -200,13 +202,12 @@ fontPrint(const char *s, float xstart, float ystart, int style)
 
 		curVert += 4;
 		curIndex += 6;
-		x += curfont->glyphwidth;
-		szx += curfont->glyphwidth;
+		x += curfont->glyphwidth*fontscale;
+		szx += curfont->glyphwidth*fontscale;
 	}
 	if(szx > sz.x)
 		sz.x = szx;
 	RwRenderStateSet(rwRENDERSTATETEXTURERASTER, raster);
-//	RwRenderStateSet(rwRENDERSTATETEXTUREFILTER, (void*)rwFILTERNEAREST);
 	RwRenderStateSet(rwRENDERSTATETEXTUREFILTER, (void*)rwFILTERLINEAR);
 	RwIm2DRenderIndexedPrimitive(rwPRIMTYPETRILIST, vertices, curVert, indices, curIndex);
 	return sz;
@@ -218,16 +219,16 @@ fontGetStringSize(const char *s)
 	Pt sz = { 0, 0 };
 	int x;
 	char c;
-	sz.y = curfont->glyphheight;	// always assume one line;
+	sz.y = curfont->glyphheight*fontscale;	// always assume one line;
 	x = 0;
 	while(c = *s++){
 		if(c == '\n'){
-			sz.y += curfont->glyphheight;
+			sz.y += curfont->glyphheight*fontscale;
 			if(x > sz.x)
 				sz.x = x;
 			x = 0;
 		}else
-			x += curfont->glyphwidth;
+			x += curfont->glyphwidth*fontscale;
 	}
 	if(x > sz.x)
 		sz.x = x;
@@ -237,5 +238,5 @@ fontGetStringSize(const char *s)
 int
 fontGetLen(int len)
 {
-	return len*curfont->glyphwidth;
+	return len*curfont->glyphwidth*fontscale;
 }
