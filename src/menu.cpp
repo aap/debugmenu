@@ -1,5 +1,8 @@
 #include "debugmenu.h"
-#include <inttypes.h>
+#include "inttypes.h"
+#include <stdio.h>
+
+#define snprintf _snprintf
 
 #define strdup _strdup
 
@@ -682,8 +685,8 @@ updateMouse(void)
 	int dirX = 1;
 	int dirY = 1;
 
-	if(MouseInvertX) dirX = -1;
-	if(MouseInvertY) dirY = -1;
+	if(MousePointerStateHelper.m_bInvertHorizontally) dirX = -1;
+	if(MousePointerStateHelper.m_bInvertVertically) dirY = -1;
 
 	mouseX += pad->NewMouseControllerState.X*dirX;
 	mouseY += pad->NewMouseControllerState.Y*dirY;

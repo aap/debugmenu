@@ -36,7 +36,7 @@ struct Menu
 	void insertEntrySorted(MenuEntry *entry);
 	void appendEntry(MenuEntry *entry);
 
-	bool isScrollingUp, isScrollingDown;
+	bool8 isScrollingUp, isScrollingDown;
 	int scrollStart;
 	int numVisible;
 	RwRect scrollUpR, scrollDownR;
@@ -64,7 +64,7 @@ struct MenuEntry_Var : MenuEntry
 {
 	int maxvallen;
 	int vartype;
-	bool wrapAround;
+	bool8 wrapAround;
 
 	virtual void processInput(bool mouseOver, bool selected) = 0;
 	int getValWidth(void) { return maxvallen; }

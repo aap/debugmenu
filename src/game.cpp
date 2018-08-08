@@ -4,22 +4,20 @@
 
 void **&RwEngineInst = *AddressByVersion<void***>(0x661228, 0x661228, 0x671248, 0x7870C0, 0x7870C8, 0x7860C8, 0xC97B24);
 
+int &CTimer::m_snTimeInMilliseconds = *AddressByVersion<int*>(0x885B48, 0x885AF8, 0x895C38, 0x974B2C, 0x974B34, 0x973B34, 0xB7CB84);
 
-int &CTimer::m_snTimeInMilliseconds = *AddressByVersion<int*>(0x885B48, 0, 0, 0x974B2C, 0, 0, 0xB7CB84);
+CMouseControllerState &CPad::NewMouseControllerState = *(CMouseControllerState*)AddressByVersion<uint32_t>(0x8809F0, 0x8809A0, 0x890AE0, 0x94D788, 0x94D790, 0x94C790, 0xB73418);
+CMouseControllerState &CPad::OldMouseControllerState = *(CMouseControllerState*)AddressByVersion<uint32_t>(0x8472A0, 0x8472A0, 0x8573E0, 0x936908, 0x936910, 0x935910, 0xB7342C);
 
-CMouseControllerState &CPad::NewMouseControllerState = *(CMouseControllerState*)AddressByVersion<uint32_t>(0x8809F0, 0, 0, 0x94D788, 0, 0, 0xB73418);
-CMouseControllerState &CPad::OldMouseControllerState = *(CMouseControllerState*)AddressByVersion<uint32_t>(0x8472A0, 0, 0, 0x936908, 0, 0, 0xB7342C);
-
-static uint32_t CPad__GetPad_A = AddressByVersion<uint32_t>(0x492F60, 0, 0, 0x4AB060, 0, 0, 0x53FB70);
+static uint32_t CPad__GetPad_A = AddressByVersion<uint32_t>(0x492F60, 0x493020, 0x492FB0, 0x4AB060, 0x4AB080, 0x4AAF30, 0x53FB70);
 WRAPPER CPad *CPad::GetPad(int id) { VARJMP(CPad__GetPad_A); }
 
-static uint32_t CControllerConfigManager__GetIsKeyboardKeyDown_A = AddressByVersion<uint32_t>(0x58D2A0, 0, 0, 0x617E10, 0, 0, 0x52DDB0);
+static uint32_t CControllerConfigManager__GetIsKeyboardKeyDown_A = AddressByVersion<uint32_t>(0x58D2A0, 0x58D590, 0x58D480, 0x617E10, 0x617DF0, 0x617A30, 0x52DDB0);
 WRAPPER bool CControllerConfigManager::GetIsKeyboardKeyDown(RsKeyCodes key) { VARJMP(CControllerConfigManager__GetIsKeyboardKeyDown_A); }
-static uint32_t CControllerConfigManager__GetIsKeyboardKeyJustDown_A = AddressByVersion<uint32_t>(0x58D8A0, 0, 0, 0x617430, 0, 0, 0x52E450);
+static uint32_t CControllerConfigManager__GetIsKeyboardKeyJustDown_A = AddressByVersion<uint32_t>(0x58D8A0, 0x58DB90, 0x58DA80, 0x617430, 0x617410, 0x617050, 0x52E450);
 WRAPPER bool CControllerConfigManager::GetIsKeyboardKeyJustDown(RsKeyCodes key) { VARJMP(CControllerConfigManager__GetIsKeyboardKeyJustDown_A); }
 
-bool &MouseInvertX = *AddressByVersion<bool*>(0x95CC8C, 0, 0, 0xA10A4C, 0, 0, 0xBA6744);
-bool &MouseInvertY = *AddressByVersion<bool*>(0x95CC8D, 0, 0, 0xA10A4D, 0, 0, 0xBA6745);
+CMousePointerStateHelper &MousePointerStateHelper = *AddressByVersion<CMousePointerStateHelper*>(0x95CC8C, 0x95CE44, 0x96CF84, 0xA10A4C, 0xA10A54, 0xA0FA54, 0xBA6744);
 
 //
 // from SkyGfx:
@@ -49,7 +47,7 @@ WRAPPER RwBool RwRenderStateSet(RwRenderState, void*) { VARJMP(RwRenderStateSet_
 #endif
 
 // ADDRESS III and VC 1.0
-static uint32_t RwImageCreate_A = AddressByVersion<uint32_t>(0x5A9120, 0, 0, 0x651250, 0, 0, 0x8026E0);
+static uint32_t RwImageCreate_A = AddressByVersion<uint32_t>(0x5A9120, 0x5A93E0, 0x5AB620, 0x651250, 0x6512A0, 0x650200, 0x8026E0);
 WRAPPER RwImage *RwImageCreate(RwInt32, RwInt32, RwInt32) { VARJMP(RwImageCreate_A); }
-static uint32_t RwImageAllocatePixels_A = AddressByVersion<uint32_t>(0x5A91E0, 0, 0, 0x651310, 0, 0, 0x8027A0);
+static uint32_t RwImageAllocatePixels_A = AddressByVersion<uint32_t>(0x5A91E0, 0x5A94A0, 0x5AB710, 0x651310, 0x651360, 0x6502C0, 0x8027A0);
 WRAPPER RwImage *RwImageAllocatePixels(RwImage *) { VARJMP(RwImageAllocatePixels_A); }

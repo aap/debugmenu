@@ -20,6 +20,7 @@ typedef int8_t int8;
 typedef int16_t int16;
 typedef int32_t int32;
 typedef int64_t int64;
+typedef uint8_t bool8;
 
 #include "debugmenu_api.h"
 
@@ -198,11 +199,11 @@ public:
 	WORD			Mode;
 	short			ShakeDur;
 	BYTE			ShakeFreq;
-	bool			bHornHistory[5];
+	bool8			bHornHistory[5];
 	BYTE			iCurrHornHistory;
-	bool			DisablePlayerControls;
-	bool			JustOutOfFrontEnd;
-	bool			bApplyBrakes;
+	bool8			DisablePlayerControls;
+	bool8			JustOutOfFrontEnd;
+	bool8			bApplyBrakes;
 	BYTE			_pad1[12];
 	int			LastTimeTouched;
 	DWORD			AverageWeapon;
@@ -224,10 +225,10 @@ public:
 	short			ShakeDur;
 	WORD			DisablePlayerControls;
 	BYTE			ShakeFreq;
-	bool			bHornHistory[5];
+	bool8			bHornHistory[5];
 	BYTE			iCurrHornHistory;
-	bool			JustOutOfFrontEnd;
-	bool			bApplyBrakes;
+	bool8			JustOutOfFrontEnd;
+	bool8			bApplyBrakes;
 	BYTE			_pad1[12];
 	int			LastTimeTouched;
 	DWORD			AverageWeapon;
@@ -251,15 +252,15 @@ public:
 	BYTE			ShakeFreq;
 	BYTE			bHornHistory[5];
 	BYTE			iCurrHornHistory;
-	bool			JustOutOfFrontEnd;
-	bool			bApplyBrakes;
-	bool			bDisablePlayerEnterCar;
-	bool			bDisablePlayerDuck;
-	bool			bDisablePlayerFireWeapon;
-	bool			bDisablePlayerFireWeaponWithL1;
-	bool			bDisablePlayerCycleWeapon;
-	bool			bDisablePlayerJump;
-	bool			bDisablePlayerDisplayVitalStats;
+	bool8			JustOutOfFrontEnd;
+	bool8			bApplyBrakes;
+	bool8			bDisablePlayerEnterCar;
+	bool8			bDisablePlayerDuck;
+	bool8			bDisablePlayerFireWeapon;
+	bool8			bDisablePlayerFireWeaponWithL1;
+	bool8			bDisablePlayerCycleWeapon;
+	bool8			bDisablePlayerJump;
+	bool8			bDisablePlayerDisplayVitalStats;
 	int			LastTimeTouched;
 	DWORD			AverageWeapon;
 	DWORD			AverageEntries;
@@ -304,4 +305,11 @@ public:
 	        (KEYJUSTDOWN(rsLCTRL) || KEYJUSTDOWN(rsRCTRL)) && KEYDOWN((RsKeyCodes)key))
 #define CTRLDOWN(key) ((KEYDOWN(rsLCTRL) || KEYDOWN(rsRCTRL)) && KEYDOWN((RsKeyCodes)key))
 
-extern bool &MouseInvertX, &MouseInvertY;
+class CMousePointerStateHelper
+{
+public:
+	bool8 m_bInvertHorizontally;
+	bool8 m_bInvertVertically;
+};
+
+extern CMousePointerStateHelper &MousePointerStateHelper;

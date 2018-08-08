@@ -148,17 +148,17 @@ patchSA10(void)
 }
 
 void
-patchVC10(void)
+patchVC(void)
 {
-	InterceptCall(&Render2dStuff_orig, Render2dStuff, 0x4A608E);
-	InterceptCall(&CCutsceneMgr__Update_orig, CCutsceneMgr__Update, 0x4A4417);
+	InterceptCall(&Render2dStuff_orig, Render2dStuff, AddressByVersion<uintptr>(0, 0, 0, 0x4A608E, 0x4A60AE, 0x4A5F5E, 0));
+	InterceptCall(&CCutsceneMgr__Update_orig, CCutsceneMgr__Update, AddressByVersion<uintptr>(0, 0, 0, 0x4A4417, 0x4A4437, 0x4A42D7, 0));
 }
 
 void
-patchIII10(void)
-{
-	InterceptCall(&Render2dStuff_orig, Render2dStuff, 0x48E642);
-	InterceptCall(&CCutsceneMgr__Update_orig, CCutsceneMgr__Update, 0x48C888);
+patchIII(void)
+{	
+	InterceptCall(&Render2dStuff_orig, Render2dStuff, AddressByVersion<uintptr>(0x48E642, 0x48E702, 0x48E692, 0, 0, 0, 0));
+	InterceptCall(&CCutsceneMgr__Update_orig, CCutsceneMgr__Update, AddressByVersion<uintptr>(0x48C888, 0x48C988, 0x48C918, 0, 0, 0, 0));
 }
 
 BOOL WINAPI
@@ -169,11 +169,11 @@ DllMain(HINSTANCE hInst, DWORD reason, LPVOID)
 
 		AddressByVersion<uint32_t>(0, 0, 0, 0, 0, 0, 0);
 #if defined (GTA3)
-		if(gtaversion == III_10)
-			patchIII10();
+		if(isIII())
+			patchIII();
 #elif defined (GTAVC)
-		if(gtaversion == VC_10)
-			patchVC10();
+		if(isVC())
+			patchVC();
 #elif defined (GTASA)
 		if(gtaversion == SA_10)
 			patchSA10();
